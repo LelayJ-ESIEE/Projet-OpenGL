@@ -125,7 +125,7 @@ void Render(GLFWwindow* window)
 
     // etape e. 
     GLint timeLocation = glGetUniformLocation(program, "u_time");
-    const float time = glfwGetTime();
+    const float time = (float) glfwGetTime();
     glUniform1f(timeLocation, time);
 
     // 
