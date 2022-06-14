@@ -21,13 +21,19 @@
     <ClCompile Include="tiny_obj_loader.cc">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
+    <ClCompile Include="libs\common\GLShader.cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Vertex.h">
-      <Filter>Fichiers d%27en-tête</Filter>
+      <Filter>Fichiers sources</Filter>
     </ClInclude>
     <ClInclude Include="tiny_obj_loader.h">
-      <Filter>Fichiers d%27en-tête</Filter>
+      <Filter>Fichiers sources</Filter>
+    </ClInclude>
+    <ClInclude Include="libs\common\GLShader.h">
+      <Filter>Fichiers sources</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
