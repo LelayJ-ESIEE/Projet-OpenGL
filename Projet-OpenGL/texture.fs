@@ -4,7 +4,7 @@
 // SORTIE DU VERTEX SHADER et INPUT du FRAGMENT SHADER
 varying vec2 v_texcoords;
 varying vec4 v_color;
-
+varying mat2 v_mat;
 uniform sampler2D u_sampler;
 
 void main(void) {

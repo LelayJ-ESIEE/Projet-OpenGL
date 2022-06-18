@@ -28,9 +28,9 @@ bool Initialise()
     g_TextureShader.Create();
 
     const Vertex triangle[] = {
-    {{-0.5f, -0.5f}, {0.f, 0.f}, {255, 0, 0, 255}},   // sommet 0
-    {{0.5f, -0.5f},  {1.f, 0.f}, {0, 255, 0, 255}},   // sommet 1
-    {{0.0f, 0.5f},   {0.f, 1.f}, {0, 0, 255, 255}}    // sommet 2
+    {{-0.5f, -0.5f,1.0}, {0.f, 0.f}, {255, 0, 0, 255}},   // sommet 0
+    {{0.5f, -0.5f,0.0},  {1.f, 0.f}, {0, 255, 0, 255}},   // sommet 1
+    {{0.0f, 0.5f,0.0},   {0.f, 1.f}, {0, 0, 255, 255}}    // sommet 2
     };
 
     glGenBuffers(1, &VBO);
@@ -46,15 +46,23 @@ bool Initialise()
     auto program = g_TextureShader.GetProgram();
 
     // VAO ---
+
+    float mat[] = { 1.0,2.0,3.0,4.0 };
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
 
     // 0 = adresse memoire systeme, sinon GPU
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
+    int loc_mat = glGetAttribLocation(program, "a_mat2");
+    glEnableVertexAttribArray(loc_mat);
+    glUniformMatrix2fv(loc_mat,1, GL_FALSE,
+        mat);
+   
+
     int loc_position = glGetAttribLocation(program, "a_position");
     glEnableVertexAttribArray(loc_position);
-    glVertexAttribPointer(loc_position, 2, GL_FLOAT
+    glVertexAttribPointer(loc_position, 3, GL_FLOAT
         , false, stride, (void*)offsetof(Vertex, position));
 
     int loc_uv = glGetAttribLocation(program, "a_texcoords");
