@@ -146,6 +146,7 @@
     <ClCompile Include="tiny_obj_loader.cc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DragonData.h" />
     <ClInclude Include="libs\common\GLShader.h" />
     <ClInclude Include="tiny_obj_loader.h" />
     <ClInclude Include="Vertex.h" />
@@ -153,6 +154,8 @@
   <ItemGroup>
     <None Include="texture.fs" />
     <None Include="texture.vs" />
+    <None Include="transform.fs" />
+    <None Include="transform.vs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

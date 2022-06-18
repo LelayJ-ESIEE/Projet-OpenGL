@@ -1,93 +1,97 @@
-// seulement si glew32s.lib
-//#define GLEW_STATIC 1
+#define _USE_MATH_DEFINES
+#include <cmath>
+#include <math.h>
+
 #include "GL/glew.h"
 
 #include <GLFW/glfw3.h>
 
-#include "common/GLShader.h"
+#include "libs/common/GLShader.h"
 
 #include "Vertex.h"
+#include "DragonData.h"
 
 // attention, ce define ne doit etre specifie que dans 1 seul fichier cpp
 #define STB_IMAGE_IMPLEMENTATION
-#include "../libs/stb/stb_image.h"
+#include "stb/stb_image.h"
 
-GLShader g_TextureShader;
+GLShader g_TransformShader;
 
 GLuint VBO;
+GLuint IBO;
 GLuint VAO;
 
 GLuint TexID;
+
+
+
+void loadTexFromFile(const char* filename) {
+    //On initialise la texture
+    glGenTextures(1, &TexID);
+    glBindTexture(GL_TEXTURE_2D, TexID);
+
+    // Filtrage bilineaire dans tous les cas (Minification et Magnification)
+    // les coordonnees de texture sont limitees a [0 ; 1[
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    int w, h;
+    uint8_t* data = stbi_load(filename, &w, &h, nullptr, STBI_rgb_alpha);
+    if (data) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        stbi_image_free(data);
+    }
+}
 
 bool Initialise()
 {
     GLenum ret = glewInit();
 
-    g_TextureShader.LoadVertexShader("texture.vs");
-    g_TextureShader.LoadFragmentShader("texture.fs");
-    g_TextureShader.Create();
+    g_TransformShader.LoadVertexShader("transform.vs");
+    g_TransformShader.LoadFragmentShader("transform.fs");
+    g_TransformShader.Create();
 
-    const Vertex triangle[] = {
-    {{-0.5f, -0.5f}, {0.f, 0.f}, {255, 0, 0, 255}},   // sommet 0
-    {{0.5f, -0.5f},  {1.f, 0.f}, {0, 255, 0, 255}},   // sommet 1
-    {{0.0f, 0.5f},   {0.f, 1.f}, {0, 0, 255, 255}}    // sommet 2
-    };
+    //On active le test de profondeur et le face culling
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+
 
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    // glBufferData alloue et transfert 3 Vertex issus du tableau triangle[]
     glBufferData(GL_ARRAY_BUFFER
-        , sizeof(Vertex) * 3, triangle, GL_STATIC_DRAW);
-    // je recommande de reinitialiser les etats a la fin pour eviter les effets de bord
+        , sizeof(DragonVertices), DragonVertices, GL_STATIC_DRAW);
 
-    constexpr size_t stride = sizeof(Vertex);// sizeof(float) * 5;
+    glGenBuffers(1, &IBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(DragonIndices), DragonIndices, GL_STATIC_DRAW);
 
-    // 
-    auto program = g_TextureShader.GetProgram();
+    const size_t stride = sizeof(DragonVertex);
 
-    // VAO ---
+    auto program = g_TransformShader.GetProgram();
+
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
 
-    // 0 = adresse memoire systeme, sinon GPU
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
 
     int loc_position = glGetAttribLocation(program, "a_position");
     glEnableVertexAttribArray(loc_position);
-    glVertexAttribPointer(loc_position, 2, GL_FLOAT
-        , false, stride, (void*)offsetof(Vertex, position));
+    glVertexAttribPointer(loc_position, 3, GL_FLOAT
+        , false, stride, (void*)offsetof(DragonVertex, position));
 
     int loc_uv = glGetAttribLocation(program, "a_texcoords");
     glEnableVertexAttribArray(loc_uv);
     glVertexAttribPointer(loc_uv, 2, GL_FLOAT
-        , false, stride, (void*)offsetof(Vertex, uv));
+        , false, stride, (void*)offsetof(DragonVertex, uv));
 
-    int loc_color = glGetAttribLocation(program, "a_color");
-    glEnableVertexAttribArray(loc_color);
-    glVertexAttribPointer(loc_color, 4, GL_UNSIGNED_BYTE
-        , true, stride, (void*)offsetof(Vertex, color));
-
-    // La bonne pratique est de reinit a zero
-    // MAIS ATTENTION, toujours le VAO en premier
-    // sinon le VAO risque d'enregistrer les modifications
-    // de VertexAttrib et VBO
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    glGenTextures(1, &TexID);
-    glBindTexture(GL_TEXTURE_2D, TexID);
-    int w, h;
-    uint8_t* data = stbi_load("dragon.png", &w, &h, nullptr, STBI_rgb_alpha);
-    if (data != nullptr) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8
-            , w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        stbi_image_free(data);
-    }
-    // filtre bilineaire
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    // filtre trilineaire (necessite mipmap)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glGenerateMipmap(GL_TEXTURE_2D);
+    loadTexFromFile("dragon.png");
 
     return true;
 }
@@ -99,7 +103,7 @@ void Terminate()
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
 
-    g_TextureShader.Destroy();
+    g_TransformShader.Destroy();
 }
 
 void Render(GLFWwindow* window)
@@ -107,50 +111,50 @@ void Render(GLFWwindow* window)
     int width, height;
     glfwGetWindowSize(window, &width, &height);
 
-    // etape a. A vous de recuperer/passer les variables width/height
     glViewport(0, 0, width, height);
-    // etape b. Notez que glClearColor est un etat, donc persistant
     glClearColor(0.5f, 0.5f, 0.5f, 1.f);
-    glClear(GL_COLOR_BUFFER_BIT);
-    // etape c. on specifie le shader program a utiliser
-    auto program = g_TextureShader.GetProgram();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    auto program = g_TransformShader.GetProgram();
     glUseProgram(program);
-    // etape d. 
-
-    //static const float color[] = {
-    //    1.0f, 0.0f, 0.0f,   // sommet 0
-    //    0.0f, 1.0f, 0.0f,   // sommet 1
-    //    0.0f, 0.0f, 1.0f    // sommet 2
-    //};
-
-    // etape e. 
-    GLint timeLocation = glGetUniformLocation(program, "u_time");
-    const float time = (float) glfwGetTime();
-    glUniform1f(timeLocation, time);
-
-    // 
-    // Rappel sur l'arithmetique des pointeurs : 
-    // char * adresse = ...;
-    // float * pointeur = (float *)adresse;
-    // float * p2 = pointeur + 2;
-    // la ligne precedente est similaire a
-    // float * p2 = adresse + sizeof(float)*2;
-    // 
-    // etape f. dessin de triangles dont la definition provient d’un tableau
-    // le rendu s’effectue ici en prenant 3 sommets a partir du debut du tableau (0)
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, TexID);
 
     GLint textureLocation = glGetUniformLocation(program, "u_sampler");
-    // 0 ici correspond au canal 0 cad GL_TEXTURE0
     glUniform1i(textureLocation, 0);
+
+    const float zNear = 0.1f;
+    const float zFar = 100.0f;
+    const float aspect = float(width) / float(height);
+    const float fov = 45.0f * M_PI / 180.0f;
+    const float f = 1.0f / tanf(fov / 2.0f);
+    const float projection[] = {
+        f / aspect, 0.f, 0.f, 0.f,
+        0.f, f, 0.f, 0.f,
+        0.f, 0.f, ((zFar + zNear) / (zNear - zFar)), -1.f,
+        0.f, 0.f, ((2 * zNear * zFar) / (zNear - zFar)), 0.f
+    };
+
+    GLint proj = glGetUniformLocation(program, "u_projection");
+    glUniformMatrix4fv(proj, 1, false, projection);
+
+    float translationX = 0.f;
+    float translationY = 0.f;
+    float translationZ = -30.f;
+
+    const float translation[] = {
+        1.f, 0.f, 0.f, 0.f,
+        0.f, 1.f, 0.f, 0.f,
+        0.f, 0.f, 1.f, 0.f,
+        translationX, translationY, translationZ, 1.f
+    };
+
+    GLint trans = glGetUniformLocation(program, "u_translation");
+    glUniformMatrix4fv(trans, 1, false, translation);
 
     glBindVertexArray(VAO);
 
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-    // on suppose que la phase d’echange des buffers front et back
-    // le « swap buffers » est effectuee juste apres
+    glDrawElements(GL_TRIANGLES, _countof(DragonVertices), GL_UNSIGNED_SHORT, 0);
 
 }
 
@@ -164,7 +168,7 @@ int main(void)
         return -1;
 
     /* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
+    window = glfwCreateWindow(640, 480, "Affichage 3D", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
