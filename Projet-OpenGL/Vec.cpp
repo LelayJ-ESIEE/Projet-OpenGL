@@ -1,4 +1,5 @@
 #include "Vec.h"
+#include "Vec.h"
 #include <cmath>
 
 vec3 Vec::normaliseVec3(vec3 vec)
@@ -32,4 +33,9 @@ vec3 Vec::add(vec3 A, vec3 B)
 vec3 Vec::multiplyByFloat(vec3 A, float B)
 {
     return { A.x * B, A.y * B, A.z * B };
+}
+
+vec3 Vec::sub(vec3 A, vec3 B)
+{
+    return { A.x - B.x,A.y - B.y,A.z - B.z };
 }

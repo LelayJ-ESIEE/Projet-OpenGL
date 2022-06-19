@@ -17,6 +17,16 @@
 #include <iostream>
 #include <iostream>
 
+#include <iostream>
+
+#include <glm.hpp>
+#include <vec2.hpp>
+#include <vec3.hpp>
+#include <vec4.hpp>
+#include <mat4x4.hpp>
+#include <gtc/matrix_transform.hpp>
+#include <gtc/type_ptr.hpp>
+
 // attention, ce define ne doit etre specifie que dans 1 seul fichier cpp
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
@@ -35,9 +45,12 @@ GLuint vbos[2];
 GLuint ibos[2];
 Camera camera;
 
-vec3 cameraPos = { 0.0f, 0.0f, 3.0f };
-vec3 cameraFront = { 0.0f, 0.0f, -1.0f };
-vec3 cameraUp = { 0.0f, 1.0f, 0.0f };
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f );
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f );
+
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
 
 
 void loadTexFromFile(const char* filename) {
@@ -166,7 +179,12 @@ void Render(GLFWwindow* window)
     const float aspect = float(width) / float(height);
     const float fov = 45.0f * M_PI / 180.0f;
     const float f = 1.0f / tanf(fov / 2.0f);
-    float* projection = Matrice4D::perspective(f, aspect, far, near);
+    const float projection[] = {
+        f / aspect, 0.f, 0.f, 0.f,
+        0.f, f, 0.f, 0.f,
+        0.f, 0.f, ((far + near) / (near - far)), -1.f,
+        0.f, 0.f, ((2 * near * far) / (near - far)), 0.f
+    };
 
     GLint proj = glGetUniformLocation(program, "u_projection");
     glUniformMatrix4fv(proj, 1, false, projection);
@@ -175,13 +193,16 @@ void Render(GLFWwindow* window)
     float translationZ = -30.f;
 
 
-    float* translation = Matrice4D::translation(translationX, translationY, translationZ);
+    const float translation[] = {
+        1.f, 0.f, 0.f, 0.f,
+        0.f, 1.f, 0.f, 0.f,
+        0.f, 0.f, 1.f, 0.f,
+        translationX, translationY, translationZ, 1.f
+    };
 
-    //camera.position = { 0.0f, 0.0f, 0.0f, 1.0f };
-    //camera.worldMatrix = translation;
-    //camera.viewMatrix = Matrice4D::LookAt(Vec::vec4ToVec3(camera.WorldToView()), { 0.5f,0.5f,0.5f }, { 1.0f,1.0f,1.0f });
-    //camera.projectionMatrix = projection;
-    float* view = Matrice4D::LookAt(cameraPos, Vec::add(cameraPos, cameraFront), cameraUp);
+    glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+    GLint viewCam = glGetUniformLocation(program, "v_view");
+    glUniformMatrix4fv(viewCam, 1, false, glm::value_ptr(view));
 
     GLint trans = glGetUniformLocation(program, "u_translation");
     glUniformMatrix4fv(trans, 1, false, translation);
@@ -196,9 +217,9 @@ void Render(GLFWwindow* window)
 
 void processInput(GLFWwindow* window)
 {
-    const float cameraSpeed = 0.05f; // adjust accordingly
+    const float cameraSpeed = 0.05f;
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        cameraPos = Vec::add(cameraPos, Vec::multiplyByFloat(cameraFront, cameraSpeed));
+        cameraPos += cameraSpeed * cameraFront;
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
         cameraPos -= cameraSpeed * cameraFront;
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
@@ -235,7 +256,6 @@ int main(void)
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
 
-        processInput(window);
     {
         /* Render here */
         Render(window);
@@ -245,6 +265,8 @@ int main(void)
 
         /* Poll for and process events */
         glfwPollEvents();
+
+        processInput(window);
     }
 
     Terminate();
