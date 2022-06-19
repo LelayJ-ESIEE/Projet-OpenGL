@@ -12,7 +12,7 @@
 #include "DragonData.h"
 
 #include <iostream>
-#include "Header.h"
+//#include "Header.h"
 #define totalFigure 2
 
 
@@ -24,12 +24,8 @@
 GLShader g_TransformShader;
 
 GLuint VBO;
-GLuint VBO2;
-GLuint IBO2;
-
 GLuint IBO;
 GLuint VAO;
-GLuint VAO2;
 
 GLuint TexID;
 GLuint vbos[totalFigure];
@@ -81,14 +77,11 @@ bool Initialise()
     g_TransformShader.LoadFragmentShader("transform.fs");
     g_TransformShader.Create();
 
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-
     const Vertex triangle[] = {
-    {{-0.5f, -0.5f,0.0f}, {0.f, 0.f}, {255, 0, 0, 255}},   // sommet 0
-    {{0.5f, -0.5f,0.0f},  {1.f, 0.f}, {0, 255, 0, 255}},   // sommet 1
-    {{0.0f, 0.5f,0.0f},   {0.f, 1.f}, {0, 0, 255, 255}},    // sommet 2
-    { {-0.5f,  0.5f, 0.0f}, {0.f, 1.f}, {0, 0, 255, 255}},
+    {{-2.0f, -2.0f,0.0f}, {0.f, 0.f}, {255, 0, 0, 255}},   // sommet 0
+    {{0.0f, 0.0f,1.0f},  {1.f, 0.f}, {0, 255, 0, 255}},   // sommet 1
+    {{0.0f, -2.0f,1.5f},   {0.f, 1.f}, {0, 0, 255, 255}},    // sommet 2
+    {{2.0f,  -2.0f, 0.0f}, {0.f, 1.f}, {0, 0, 255, 255}},   // Sommet 4
     }
     ;
 
@@ -127,7 +120,7 @@ bool Initialise()
 
     // je recommande de reinitialiser les etats a la fin pour eviter les effets de bord
 
-    constexpr size_t stride = sizeof(Vertex);// sizeof(float) * 5;
+    constexpr size_t stride = sizeof(Vertex);
 
     // 
     auto program = g_TransformShader.GetProgram();
@@ -137,7 +130,6 @@ bool Initialise()
 
     glBindVertexArray(vaos[0]);
 
-    // 0 = adresse memoire systeme, sinon GPU
     glBindBuffer(GL_ARRAY_BUFFER, vbos[0]);
     glBufferData(GL_ARRAY_BUFFER, fig.size()*sizeof(Vertex), &fig[0], GL_STATIC_DRAW);
 
@@ -191,8 +183,15 @@ void Terminate()
 {
     glDeleteTextures(1, &TexID);
 
-    glDeleteVertexArrays(1, &VAO2);
-    glDeleteBuffers(1, &VBO2);
+    for (int i = 0; i < sizeof(vaos) / sizeof(GLuint); i++) {
+        glDeleteVertexArrays(1, &vaos[i]);
+    }
+    for (int i = 0; i < sizeof(vbos) / sizeof(GLuint); i++) {
+        glDeleteBuffers(1, &vbos[i]);
+    }
+    for (int i = 0; i < sizeof(ibos) / sizeof(GLuint); i++) {
+        glDeleteBuffers(1, &ibos[i]);
+    }
 
     g_TransformShader.Destroy();
 }
@@ -258,8 +257,6 @@ void Render(GLFWwindow* window)
     glDrawElements(GL_TRIANGLES,fig.size(), GL_UNSIGNED_INT, 0);
 
 
-
-}
 
 
 
