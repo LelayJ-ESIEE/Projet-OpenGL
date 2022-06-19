@@ -10,9 +10,10 @@
 
 #include "Vertex.h"
 #include "DragonData.h"
+#include <vector>
 
 #include <iostream>
-//#include "Header.h"
+#include "Header.h"
 #define totalFigure 2
 
 
@@ -233,7 +234,7 @@ void Render(GLFWwindow* window)
     float translationY = 0.f;
     float translationZ = -30.f;
 
-    
+
     const float translation[] = {
         1.f, 0.f, 0.f, 0.f,
         0.f, 1.f, 0.f, 0.f,
@@ -254,7 +255,8 @@ void Render(GLFWwindow* window)
     //glDrawElements(GL_TRIANGLES, _countof(DragonVertices), GL_UNSIGNED_SHORT, 0);
 
     glBindVertexArray(vaos[0]); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-    glDrawElements(GL_TRIANGLES,fig.size(), GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, fig.size(), GL_UNSIGNED_INT, 0);
+}
 
 
 
