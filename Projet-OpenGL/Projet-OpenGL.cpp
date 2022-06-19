@@ -13,6 +13,9 @@
 
 #include <iostream>
 #include "Header.h"
+#define totalFigure 2
+
+
 
 // attention, ce define ne doit etre specifie que dans 1 seul fichier cpp
 #define STB_IMAGE_IMPLEMENTATION
@@ -29,18 +32,14 @@ GLuint VAO;
 GLuint VAO2;
 
 GLuint TexID;
-GLuint vbos[2];
-GLuint ibos[2];
+GLuint vbos[totalFigure];
+GLuint ibos[totalFigure];
+GLuint vaos[totalFigure];
 
-const float triangle[] = {
-     0.5f,  0.5f, 0.0f,  // top right
-     0.5f, -0.5f, 0.0f,  // bottom right
-    -0.5f, -0.5f, 0.0f,  // bottom left
-    -0.5f,  0.5f, 0.0f   // top left 
-};
-const int indices[] = {
-    0, 1, 3,   // first triangle
-    1, 2, 3    // second triangle
+
+const unsigned  int indices[] = {
+    0, 1, 2  , // first triangle
+    1,2,3
 };
 
 void loadTexFromFile(const char* filename) {
@@ -67,107 +66,77 @@ void loadTexFromFile(const char* filename) {
 
 bool Initialise()
 {
-    loadObj("cube.obj");
     GLenum ret = glewInit();
 
     g_TransformShader.LoadVertexShader("transform.vs");
     g_TransformShader.LoadFragmentShader("transform.fs");
     g_TransformShader.Create();
 
-    //On active le test de profondeur et le face culling
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
+    const Vertex triangle[] = {
+    {{-0.5f, -0.5f,0.0f}, {0.f, 0.f}, {255, 0, 0, 255}},   // sommet 0
+    {{0.5f, -0.5f,0.0f},  {1.f, 0.f}, {0, 255, 0, 255}},   // sommet 1
+    {{0.0f, 0.5f,0.0f},   {0.f, 1.f}, {0, 0, 255, 255}},    // sommet 2
+    { {-0.5f,  0.5f, 0.0f}, {0.f, 1.f}, {0, 0, 255, 255}},
+    }
+    ;
 
-    
-    /*glGenBuffers(1, &VBO2);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO2);
-    glBufferData(GL_ARRAY_BUFFER
-        , sizeof(triangle), triangle, GL_STATIC_DRAW);
+    glGenBuffers(totalFigure, vbos);
+    glGenBuffers(totalFigure, ibos);
+    glGenVertexArrays(totalFigure, vaos);
 
-    glGenBuffers(1, &IBO2);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO2);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, 3, indices, GL_STATIC_DRAW);*/
+    // je recommande de reinitialiser les etats a la fin pour eviter les effets de bord
 
+    constexpr size_t stride = sizeof(Vertex);// sizeof(float) * 5;
 
-
-    const size_t stride = sizeof(DragonVertex);
-
+    // 
     auto program = g_TransformShader.GetProgram();
+    // VAO ---
 
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-    glGenBuffers(1, &IBO);
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER , sizeof(DragonVertices), DragonVertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(DragonIndices), DragonIndices, GL_STATIC_DRAW);
+    glBindVertexArray(vaos[0]);
+
+    // 0 = adresse memoire systeme, sinon GPU
+    glBindBuffer(GL_ARRAY_BUFFER, vbos[0]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(triangle), triangle, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibos[0]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     int loc_position = glGetAttribLocation(program, "a_position");
     glEnableVertexAttribArray(loc_position);
-    glVertexAttribPointer(loc_position, 3, GL_FLOAT , false, stride, (void*)offsetof(DragonVertex, position));
-
-    int loc_uv = glGetAttribLocation(program, "a_texcoords");
-    glEnableVertexAttribArray(loc_uv);
-    glVertexAttribPointer(loc_uv, 2, GL_FLOAT
-        , false, stride, (void*)offsetof(DragonVertex, uv));
-    loadTexFromFile("dragon.png");
+    glVertexAttribPointer(loc_position, 3, GL_FLOAT
+        , GL_FALSE, stride, (void*)0);
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    
 
-    glGenVertexArrays(1, &VAO2);
-    glBindVertexArray(VAO2);
-    glGenBuffers(1, &VBO2);
-    glGenBuffers(1, &IBO2);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO2);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(triangle), triangle, GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO2);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(loc_position);
-    glVertexAttribPointer(loc_position, 3, GL_FLOAT, false, sizeof(float)*3, (void*)0);
-
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
+    //loadObj("cube.obj");
 
     //2eme objet
-
-   /* glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-    glGenBuffers(1, ibos);
-    glGenBuffers(1, vbos);
-    glBindBuffer(GL_ARRAY_BUFFER, vbos[0]);
+    constexpr size_t strides = sizeof(DragonVertex);// sizeof(float) * 5;
+    glBindVertexArray(vaos[1]);
+    glBindBuffer(GL_ARRAY_BUFFER, vbos[1]);
     glBufferData(GL_ARRAY_BUFFER
         , sizeof(DragonVertices), DragonVertices, GL_STATIC_DRAW);
 
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibos[0]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibos[1]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(DragonIndices), DragonIndices, GL_STATIC_DRAW);
 
-    int loc_position = glGetAttribLocation(program, "a_position");
+    loc_position = glGetAttribLocation(program, "a_position");
     glEnableVertexAttribArray(loc_position);
     glVertexAttribPointer(loc_position, 3, GL_FLOAT
-        , false, stride, (void*)offsetof(DragonVertex, position));
+        , false, strides, (void*)offsetof(DragonVertex, position));
 
     int loc_uv = glGetAttribLocation(program, "a_texcoords");
     glEnableVertexAttribArray(loc_uv);
     glVertexAttribPointer(loc_uv, 2, GL_FLOAT
-        , false, stride, (void*)offsetof(DragonVertex, uv));
-    loadTexFromFile("dragon.png");
+        , false, strides, (void*)offsetof(DragonVertex, uv));
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    glBindBuffer(GL_ARRAY_BUFFER, vbos[1]);
-    glBufferData(GL_ARRAY_BUFFER
-        , sizeof(triangle), triangle, GL_STATIC_DRAW);
-    glVertexAttribPointer(loc_position, 3, GL_FLOAT
-        , false, stride, triangle);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibos[1]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);*/
+    loadTexFromFile("dragon.png");
 
-    
+
 
     return true;
 }
@@ -176,8 +145,8 @@ void Terminate()
 {
     glDeleteTextures(1, &TexID);
 
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, vbos);
+    glDeleteVertexArrays(1, &VAO2);
+    glDeleteBuffers(1, &VBO2);
 
     g_TransformShader.Destroy();
 }
@@ -237,10 +206,13 @@ void Render(GLFWwindow* window)
     GLint trans = glGetUniformLocation(program, "u_translation");
     glUniformMatrix4fv(trans, 1, false, translation);
 
-    //glBindVertexArray(VAO);
-      //glDrawElements(GL_TRIANGLES, _countof(DragonVertices)+_countof(triangle), GL_UNSIGNED_SHORT, 0);
-      glBindVertexArray(VAO2);
-      glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(vaos[0]); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+    glBindVertexArray(vaos[1]);
+    for (int i = 0; i < 3; i++) {
+        glDrawElements(GL_TRIANGLES, _countof(DragonVertices), GL_UNSIGNED_SHORT, 0);
+    }
 
 }
 
