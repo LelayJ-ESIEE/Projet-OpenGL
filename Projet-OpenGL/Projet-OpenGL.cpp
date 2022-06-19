@@ -18,11 +18,35 @@
 GLShader g_TransformShader;
 
 GLuint VBO;
+GLuint VBO2;
 GLuint IBO;
+GLuint IBO2;
 GLuint VAO;
+GLuint VAO2;
 
 GLuint TexID;
 
+const float cube_vert[] = {
+        -5,-5,-5, // Back left
+        0,5,0, // Up
+        0,-8,5, // Front
+        5,-5,-5, // Back right
+};
+
+const int cube_id[] = {
+        0,1,2, 2,1,3,
+        3,1,0, 0,2,3
+};
+
+const float tri_vert[] = {
+        -1, -1, 0.5, // left
+        0,1,1, // Up
+        1,-1,0.5, // Right
+};
+
+const int tri_id[] = {
+        0,1,2
+};
 
 
 void loadTexFromFile(const char* filename) {
@@ -58,6 +82,8 @@ bool Initialise()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
 
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -68,15 +94,29 @@ bool Initialise()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(DragonIndices), DragonIndices, GL_STATIC_DRAW);
 
+
+    // test second objet
+    glGenVertexArrays(1, &VAO2);
+    glBindVertexArray(VAO2);
+
+    glGenBuffers(1, &VBO2);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO2);
+    glBufferData(GL_ARRAY_BUFFER
+        , sizeof(tri_vert), tri_vert, GL_STATIC_DRAW);
+
+    glGenBuffers(1, &IBO2);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO2);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(tri_id), tri_id, GL_STATIC_DRAW);
+
+    // ##
+
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+
     const size_t stride = sizeof(DragonVertex);
 
     auto program = g_TransformShader.GetProgram();
-
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
 
     int loc_position = glGetAttribLocation(program, "a_position");
     glEnableVertexAttribArray(loc_position);
@@ -88,8 +128,21 @@ bool Initialise()
     glVertexAttribPointer(loc_uv, 2, GL_FLOAT
         , false, stride, (void*)offsetof(DragonVertex, uv));
 
+    // Objet2
+    glBindVertexArray(VAO2);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO2);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO2);
+
+    int loc_position2 = glGetAttribLocation(program, "a_position");
+    glEnableVertexAttribArray(loc_position2);
+    glVertexAttribPointer(loc_position2, 3, GL_FLOAT
+        , false, 3 * sizeof(float), (void*)0);
+
+    // ##
+
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     loadTexFromFile("dragon.png");
 
@@ -102,6 +155,7 @@ void Terminate()
 
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &IBO);
 
     g_TransformShader.Destroy();
 }
@@ -153,8 +207,14 @@ void Render(GLFWwindow* window)
     glUniformMatrix4fv(trans, 1, false, translation);
 
     glBindVertexArray(VAO);
-
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
     glDrawElements(GL_TRIANGLES, _countof(DragonVertices), GL_UNSIGNED_SHORT, 0);
+
+    glBindVertexArray(VAO2);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO2);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO2);
+    glDrawElements(GL_TRIANGLES, _countof(tri_vert), GL_UNSIGNED_SHORT, 0);
 
 }
 
