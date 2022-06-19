@@ -12,7 +12,7 @@
 #include "DragonData.h"
 
 #include <iostream>
-#include "Header.h"
+//#include "Header.h"
 #define totalFigure 2
 
 
@@ -24,12 +24,8 @@
 GLShader g_TransformShader;
 
 GLuint VBO;
-GLuint VBO2;
-GLuint IBO2;
-
 GLuint IBO;
 GLuint VAO;
-GLuint VAO2;
 
 GLuint TexID;
 GLuint vbos[totalFigure];
@@ -73,12 +69,16 @@ bool Initialise()
     g_TransformShader.Create();
 
     const Vertex triangle[] = {
-    {{-0.5f, -0.5f,0.0f}, {0.f, 0.f}, {255, 0, 0, 255}},   // sommet 0
-    {{0.5f, -0.5f,0.0f},  {1.f, 0.f}, {0, 255, 0, 255}},   // sommet 1
-    {{0.0f, 0.5f,0.0f},   {0.f, 1.f}, {0, 0, 255, 255}},    // sommet 2
-    { {-0.5f,  0.5f, 0.0f}, {0.f, 1.f}, {0, 0, 255, 255}},
+    {{-2.0f, -2.0f,0.0f}, {0.f, 0.f}, {255, 0, 0, 255}},   // sommet 0
+    {{0.0f, 0.0f,1.0f},  {1.f, 0.f}, {0, 255, 0, 255}},   // sommet 1
+    {{0.0f, -2.0f,1.5f},   {0.f, 1.f}, {0, 0, 255, 255}},    // sommet 2
+    {{2.0f,  -2.0f, 0.0f}, {0.f, 1.f}, {0, 0, 255, 255}},   // Sommet 4
     }
     ;
+
+    const int triangle_index[] = {
+        0, 1, 2, 1, 2, 3
+    };
 
     glGenBuffers(totalFigure, vbos);
     glGenBuffers(totalFigure, ibos);
@@ -86,7 +86,7 @@ bool Initialise()
 
     // je recommande de reinitialiser les etats a la fin pour eviter les effets de bord
 
-    constexpr size_t stride = sizeof(Vertex);// sizeof(float) * 5;
+    constexpr size_t stride = sizeof(Vertex);
 
     // 
     auto program = g_TransformShader.GetProgram();
@@ -94,12 +94,11 @@ bool Initialise()
 
     glBindVertexArray(vaos[0]);
 
-    // 0 = adresse memoire systeme, sinon GPU
     glBindBuffer(GL_ARRAY_BUFFER, vbos[0]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(triangle), triangle, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibos[0]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(triangle_index), triangle_index, GL_STATIC_DRAW);
 
     int loc_position = glGetAttribLocation(program, "a_position");
     glEnableVertexAttribArray(loc_position);
@@ -145,8 +144,15 @@ void Terminate()
 {
     glDeleteTextures(1, &TexID);
 
-    glDeleteVertexArrays(1, &VAO2);
-    glDeleteBuffers(1, &VBO2);
+    for (int i = 0; i < sizeof(vaos) / sizeof(GLuint); i++) {
+        glDeleteVertexArrays(1, &vaos[i]);
+    }
+    for (int i = 0; i < sizeof(vbos) / sizeof(GLuint); i++) {
+        glDeleteBuffers(1, &vbos[i]);
+    }
+    for (int i = 0; i < sizeof(ibos) / sizeof(GLuint); i++) {
+        glDeleteBuffers(1, &ibos[i]);
+    }
 
     g_TransformShader.Destroy();
 }
@@ -206,14 +212,11 @@ void Render(GLFWwindow* window)
     GLint trans = glGetUniformLocation(program, "u_translation");
     glUniformMatrix4fv(trans, 1, false, translation);
 
-    glBindVertexArray(vaos[0]); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
+    glBindVertexArray(vaos[0]);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
     glBindVertexArray(vaos[1]);
-    for (int i = 0; i < 3; i++) {
-        glDrawElements(GL_TRIANGLES, _countof(DragonVertices), GL_UNSIGNED_SHORT, 0);
-    }
-
+    glDrawElements(GL_TRIANGLES, _countof(DragonVertices), GL_UNSIGNED_SHORT, 0);
 }
 
 
