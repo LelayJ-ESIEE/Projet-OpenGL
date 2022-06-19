@@ -35,7 +35,8 @@ GLuint TexID;
 GLuint vbos[totalFigure];
 GLuint ibos[totalFigure];
 GLuint vaos[totalFigure];
-
+std::vector<int> indice;
+std::vector<Vertex> fig = loadObj("cube.obj", indice);
 
 const unsigned  int indices[] = {
     0, 1, 2  , // first triangle
@@ -64,6 +65,14 @@ void loadTexFromFile(const char* filename) {
     }
 }
 
+void printVector(std::vector<Vertex> vV) {
+    std::cout << "{";
+    for (Vertex v : vV) {
+        std::cout << "{" << v.position.x << " ," << v.position.y << " ," << v.position.z << "},\n";
+    }
+    std::cout << "}";
+}
+
 bool Initialise()
 {
     GLenum ret = glewInit();
@@ -71,6 +80,9 @@ bool Initialise()
     g_TransformShader.LoadVertexShader("transform.vs");
     g_TransformShader.LoadFragmentShader("transform.fs");
     g_TransformShader.Create();
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
 
     const Vertex triangle[] = {
     {{-0.5f, -0.5f,0.0f}, {0.f, 0.f}, {255, 0, 0, 255}},   // sommet 0
@@ -80,6 +92,35 @@ bool Initialise()
     }
     ;
 
+    const float cube[] = { 
+        1 ,-1 ,-1,
+        1.0, -1.0, 1.0,
+         -1.0 ,-1.0 ,1.0 ,
+         -1.0 ,-1.0 ,-1.0 ,
+         1.0 ,1.0 ,-0.999999 ,
+         0.999999 ,1.0 ,1.0 ,
+         -1.0 ,1.0 ,1.0,
+         -1.0 ,1.0 ,-1.0 ,
+    };
+
+    const int indiceCube[] = {
+            1,2,3,
+            7,6,5,
+            4,5,1,
+            5,6,2,
+            2,6,7,
+            0,3,7,
+            0,1,3,
+            4,7,5,
+            0,4,1,
+            1,5,2,
+            3,2,7,
+            4,0,7,
+    };
+
+
+
+    
     glGenBuffers(totalFigure, vbos);
     glGenBuffers(totalFigure, ibos);
     glGenVertexArrays(totalFigure, vaos);
@@ -91,25 +132,26 @@ bool Initialise()
     // 
     auto program = g_TransformShader.GetProgram();
     // VAO ---
+    
+
 
     glBindVertexArray(vaos[0]);
 
     // 0 = adresse memoire systeme, sinon GPU
     glBindBuffer(GL_ARRAY_BUFFER, vbos[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(triangle), triangle, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, fig.size()*sizeof(Vertex), &fig[0], GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibos[0]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indice.size() * sizeof(int), &indice[0], GL_STATIC_DRAW);
 
     int loc_position = glGetAttribLocation(program, "a_position");
     glEnableVertexAttribArray(loc_position);
     glVertexAttribPointer(loc_position, 3, GL_FLOAT
-        , GL_FALSE, stride, (void*)0);
+        , GL_FALSE, sizeof(Vertex), (void*)0);
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     
 
-    //loadObj("cube.obj");
 
     //2eme objet
     constexpr size_t strides = sizeof(DragonVertex);// sizeof(float) * 5;
@@ -131,10 +173,14 @@ bool Initialise()
     glEnableVertexAttribArray(loc_uv);
     glVertexAttribPointer(loc_uv, 2, GL_FLOAT
         , false, strides, (void*)offsetof(DragonVertex, uv));
+
+    
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-
     loadTexFromFile("dragon.png");
+
+
+    
 
 
 
@@ -205,14 +251,13 @@ void Render(GLFWwindow* window)
 
     GLint trans = glGetUniformLocation(program, "u_translation");
     glUniformMatrix4fv(trans, 1, false, translation);
+    glBindVertexArray(vaos[1]);
+    //glDrawElements(GL_TRIANGLES, _countof(DragonVertices), GL_UNSIGNED_SHORT, 0);
 
     glBindVertexArray(vaos[0]); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES,fig.size(), GL_UNSIGNED_INT, 0);
 
-    glBindVertexArray(vaos[1]);
-    for (int i = 0; i < 3; i++) {
-        glDrawElements(GL_TRIANGLES, _countof(DragonVertices), GL_UNSIGNED_SHORT, 0);
-    }
+
 
 }
 

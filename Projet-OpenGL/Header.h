@@ -3,8 +3,9 @@
 #include "Vertex.h"
 #include <vector>
 #include "tiny_obj_loader.h"
+#include <iostream>
 
-static std::vector<Vertex> loadObj(const char* fileName) {
+static std::vector<Vertex> loadObj(const char* fileName,std::vector<int>& indices) {
     tinyobj::ObjReaderConfig reader_config;
     reader_config.mtl_search_path = "./"; // Path to material files
     std::vector<Vertex> objVertex;
@@ -35,12 +36,14 @@ static std::vector<Vertex> loadObj(const char* fileName) {
 
             // Loop over vertices in the face.
             for (size_t v = 0; v < fv; v++) {
-                tinyobj::real_t tx, ty;
+                float tx= 0, ty = 0;
                 // access to vertex
+                
                 tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
-                tinyobj::real_t vx = attrib.vertices[3 * size_t(idx.vertex_index) + 0];
-                tinyobj::real_t vy = attrib.vertices[3 * size_t(idx.vertex_index) + 1];
-                tinyobj::real_t vz = attrib.vertices[3 * size_t(idx.vertex_index) + 2];
+                float vx = attrib.vertices[3 * size_t(idx.vertex_index) + 0];
+                float vy = attrib.vertices[3 * size_t(idx.vertex_index) + 1];
+                float vz = attrib.vertices[3 * size_t(idx.vertex_index) + 2];
+  
 
                 // Check if `normal_index` is zero or positive. negative = no normal data
                 if (idx.normal_index >= 0) {
@@ -59,12 +62,21 @@ static std::vector<Vertex> loadObj(const char* fileName) {
                /* tinyobj::real_t red   = attrib.colors[3*size_t(idx.vertex_index)+0];
                 tinyobj::real_t green = attrib.colors[3*size_t(idx.vertex_index)+1];
                 tinyobj::real_t blue  = attrib.colors[3*size_t(idx.vertex_index)+2];*/
-                //objVertex.push_back({ { vx,vy,vz }, { tx,ty } , {0.0,0.0,1.0,1.0f} });
+                
             }
             index_offset += fv;
            
             // per-face material
             shapes[s].mesh.material_ids[f];
+        }
+        std::cout << attrib.vertices.size();
+        for (long i = 0; i < attrib.vertices.size() ; i+=3) {
+            objVertex.push_back({ { attrib.vertices[i],attrib.vertices[i+1],attrib.vertices[i+2] }, { 1.0,1.0 } , {255,255,255,1} });
+        }
+        std::cout << objVertex.size();
+        for (long i = 0; i < shapes[s].mesh.indices.size(); i++)
+        {
+            indices.push_back(shapes[s].mesh.indices[i].vertex_index);
         }
         return objVertex;
     }
