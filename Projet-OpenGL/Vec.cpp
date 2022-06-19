@@ -18,3 +18,18 @@ float Vec::dotProductVec3(vec3 A, vec3 B)
 {
     return A.x * B.x + A.y * B.y + A.z * B.z;
 }
+
+vec3 Vec::vec4ToVec3(vec4 A)
+{
+    return { A.x, A.y, A.z };
+}
+
+vec3 Vec::add(vec3 A, vec3 B)
+{
+    return { A.x + B.x,A.y + B.y,A.z + B.z };
+}
+
+vec3 Vec::multiplyByFloat(vec3 A, float B)
+{
+    return { A.x * B, A.y * B, A.z * B };
+}
