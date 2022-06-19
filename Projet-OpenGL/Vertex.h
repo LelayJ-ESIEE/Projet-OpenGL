@@ -10,6 +10,10 @@ struct vec3 {
 	float x, y, z;
 };
 
+struct vec4 {
+	float x, y, z, w;
+};
+
 struct Color {
 	uint8_t r, g, b, a;
 };
