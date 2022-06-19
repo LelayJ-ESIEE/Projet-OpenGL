@@ -69,15 +69,16 @@ static std::vector<Vertex> loadObj(const char* fileName,std::vector<int>& indice
             // per-face material
             shapes[s].mesh.material_ids[f];
         }
-        std::cout << attrib.vertices.size();
+        std::cout << attrib.vertices.size() << std::endl;
         for (long i = 0; i < attrib.vertices.size() ; i+=3) {
             objVertex.push_back({ { attrib.vertices[i],attrib.vertices[i+1],attrib.vertices[i+2] }, { 1.0,1.0 } , {255,255,255,1} });
         }
-        std::cout << objVertex.size();
+        std::cout << objVertex.size() << std::endl;
         for (long i = 0; i < shapes[s].mesh.indices.size(); i++)
         {
             indices.push_back(shapes[s].mesh.indices[i].vertex_index);
         }
+
         return objVertex;
     }
 

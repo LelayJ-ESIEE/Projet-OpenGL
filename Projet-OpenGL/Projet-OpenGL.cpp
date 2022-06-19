@@ -18,15 +18,13 @@
 
 
 
-// attention, ce define ne doit etre specifie que dans 1 seul fichier cpp
+// Ne définir qu'une fois
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 
-GLShader g_TransformShader;
+GLShader g_TransformShaders[totalFigure];
 
-GLuint VBO;
-GLuint IBO;
-GLuint VAO;
+int figSizes[totalFigure];
 
 GLuint TexID;
 GLuint vbos[totalFigure];
@@ -42,12 +40,9 @@ const unsigned  int indices[] = {
 
 void loadTexFromFile(const char* filename) {
 
-    //On initialise la texture
     glGenTextures(1, &TexID);
     glBindTexture(GL_TEXTURE_2D, TexID);
 
-    // Filtrage bilineaire dans tous les cas (Minification et Magnification)
-    // les coordonnees de texture sont limitees a [0 ; 1[
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -74,9 +69,13 @@ bool Initialise()
 {
     GLenum ret = glewInit();
 
-    g_TransformShader.LoadVertexShader("transform.vs");
-    g_TransformShader.LoadFragmentShader("transform.fs");
-    g_TransformShader.Create();
+    g_TransformShaders[0].LoadVertexShader("transform.vs");
+    g_TransformShaders[0].LoadFragmentShader("transform.fs");
+    g_TransformShaders[0].Create();
+
+    g_TransformShaders[1].LoadVertexShader("transform.vs");
+    g_TransformShaders[1].LoadFragmentShader("Orange.fs");
+    g_TransformShaders[1].Create();
 
     const Vertex triangle[] = {
     {{-2.0f, -2.0f,0.0f}, {0.f, 0.f}, {255, 0, 0, 255}},   // sommet 0
@@ -119,17 +118,15 @@ bool Initialise()
     glGenBuffers(totalFigure, ibos);
     glGenVertexArrays(totalFigure, vaos);
 
-    // je recommande de reinitialiser les etats a la fin pour eviter les effets de bord
-
     constexpr size_t stride = sizeof(Vertex);
 
-    // 
-    auto program = g_TransformShader.GetProgram();
-    // VAO ---
+    uint32_t programs[totalFigure];
+    programs[0] = g_TransformShaders[0].GetProgram();
+    programs[1] = g_TransformShaders[1].GetProgram();
     
 
 
-    glBindVertexArray(vaos[0]);
+    glBindVertexArray(vaos[1]);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbos[0]);
     glBufferData(GL_ARRAY_BUFFER, fig.size()*sizeof(Vertex), &fig[0], GL_STATIC_DRAW);
@@ -137,18 +134,18 @@ bool Initialise()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibos[0]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indice.size() * sizeof(int), &indice[0], GL_STATIC_DRAW);
 
-    int loc_position = glGetAttribLocation(program, "a_position");
+    int loc_position = glGetAttribLocation(programs[1], "a_position");
     glEnableVertexAttribArray(loc_position);
     glVertexAttribPointer(loc_position, 3, GL_FLOAT
-        , GL_FALSE, sizeof(Vertex), (void*)0);
+        , false, sizeof(Vertex), (void*)offsetof(Vertex, position));
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     
 
-
     //2eme objet
-    constexpr size_t strides = sizeof(DragonVertex);// sizeof(float) * 5;
-    glBindVertexArray(vaos[1]);
+    constexpr size_t strides = sizeof(DragonVertex);
+    glBindVertexArray(vaos[0]);
     glBindBuffer(GL_ARRAY_BUFFER, vbos[1]);
     glBufferData(GL_ARRAY_BUFFER
         , sizeof(DragonVertices), DragonVertices, GL_STATIC_DRAW);
@@ -157,12 +154,12 @@ bool Initialise()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibos[1]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(DragonIndices), DragonIndices, GL_STATIC_DRAW);
 
-    loc_position = glGetAttribLocation(program, "a_position");
+    loc_position = glGetAttribLocation(programs[0], "a_position");
     glEnableVertexAttribArray(loc_position);
     glVertexAttribPointer(loc_position, 3, GL_FLOAT
         , false, strides, (void*)offsetof(DragonVertex, position));
 
-    int loc_uv = glGetAttribLocation(program, "a_texcoords");
+    int loc_uv = glGetAttribLocation(programs[0], "a_texcoords");
     glEnableVertexAttribArray(loc_uv);
     glVertexAttribPointer(loc_uv, 2, GL_FLOAT
         , false, strides, (void*)offsetof(DragonVertex, uv));
@@ -194,7 +191,9 @@ void Terminate()
         glDeleteBuffers(1, &ibos[i]);
     }
 
-    g_TransformShader.Destroy();
+    for (int i = 0; i < sizeof(g_TransformShaders) / sizeof(GLShader); i++) {
+        g_TransformShaders[i].Destroy();
+    }
 }
 
 void Render(GLFWwindow* window)
@@ -205,14 +204,6 @@ void Render(GLFWwindow* window)
     glViewport(0, 0, width, height);
     glClearColor(0.5f, 0.5f, 0.5f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    auto program = g_TransformShader.GetProgram();
-    glUseProgram(program);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, TexID);
-
-    GLint textureLocation = glGetUniformLocation(program, "u_sampler");
-    glUniform1i(textureLocation, 0);
 
     const float zNear = 0.1f;
     const float zFar = 100;
@@ -226,10 +217,6 @@ void Render(GLFWwindow* window)
         0.f, 0.f, ((2 * zNear * zFar) / (zNear - zFar)), 0.f
     };
 
-
-
-    GLint proj = glGetUniformLocation(program, "u_projection");
-    glUniformMatrix4fv(proj, 1, false, projection);
     float translationX = 0.f;
     float translationY = 0.f;
     float translationZ = -30.f;
@@ -249,13 +236,31 @@ void Render(GLFWwindow* window)
         translationX, translationY,10.f, 1.f
     };
 
-    GLint trans = glGetUniformLocation(program, "u_translation");
-    glUniformMatrix4fv(trans, 1, false, translation);
-    glBindVertexArray(vaos[1]);
-    //glDrawElements(GL_TRIANGLES, _countof(DragonVertices), GL_UNSIGNED_SHORT, 0);
+    uint32_t programs[totalFigure];
+    programs[0] = g_TransformShaders[0].GetProgram();
+    programs[1] = g_TransformShaders[1].GetProgram();
 
-    glBindVertexArray(vaos[0]); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-    glDrawElements(GL_TRIANGLES, fig.size(), GL_UNSIGNED_INT, 0);
+    figSizes[0] = _countof(DragonVertices);
+    figSizes[1] = indice.size();
+
+    for (int i = 0; i < sizeof(programs) / sizeof(uint32_t); i++) {
+        glUseProgram(programs[i]);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, TexID);
+
+        GLint textureLocation = glGetUniformLocation(programs[0], "u_sampler");
+        glUniform1i(textureLocation, 0);
+
+        GLint proj = glGetUniformLocation(programs[0], "u_projection");
+        glUniformMatrix4fv(proj, 1, false, projection);
+
+        GLint trans = glGetUniformLocation(programs[0], "u_translation");
+        glUniformMatrix4fv(trans, 1, false, translation);
+        glBindVertexArray(vaos[i]);
+        glDrawElements(GL_TRIANGLES, figSizes[i], GL_UNSIGNED_INT, 0);
+    }
+
 }
 
 

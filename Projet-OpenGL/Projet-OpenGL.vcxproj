@@ -147,11 +147,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DragonData.h" />
+    <ClInclude Include="Header.h" />
     <ClInclude Include="libs\common\GLShader.h" />
     <ClInclude Include="tiny_obj_loader.h" />
     <ClInclude Include="Vertex.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Orange.fs" />
     <None Include="texture.fs" />
     <None Include="texture.vs" />
     <None Include="transform.fs" />
