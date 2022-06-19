@@ -1,9 +1,9 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <math.h>
+#include <iostream>
 
 #include "GL/glew.h"
-
 #include <GLFW/glfw3.h>
 
 #include "libs/common/GLShader.h"
@@ -14,10 +14,6 @@
 #include "Matrice4D.h"
 #include "Camera.h"
 
-#include <iostream>
-#include <iostream>
-
-#include <iostream>
 
 #include <glm.hpp>
 #include <vec2.hpp>
@@ -28,7 +24,6 @@
 #include <gtc/type_ptr.hpp>
 #include <vector>
 
-#include <iostream>
 #include "Header.h"
 #define totalFigure 3
 
@@ -38,7 +33,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 
-GLShader g_TransformShaders[totalFigure];
+GLShader g_Shaders[totalFigure];
 
 Camera camera;
 
@@ -61,7 +56,7 @@ std::vector<Vertex> fig = loadObj("cube.obj", indice);
 std::vector<int> indice_fig2;
 std::vector<Vertex> fig2 = loadObj("leaftree.obj", indice_fig2);
 
-void loadTexFromFile(const char* filename) {
+void loadTexture(const char* filename) {
 
     glGenTextures(1, &TexID);
     glBindTexture(GL_TEXTURE_2D, TexID);
@@ -90,42 +85,32 @@ void printVector(std::vector<Vertex> vV) {
 
 bool Initialise()
 {
-    const float triangle[] = {
-      -1.0, -1.0, 0.0,
-      1.0, -1.0, 0.0,
-      0.0, 1.0, 0.0,
-    };
-    const int indices[] = {
-        0,2,1,2,1,0
-    };
     GLenum ret = glewInit();
 
-    g_TransformShaders[0].LoadVertexShader("transform.vs");
-    g_TransformShaders[0].LoadFragmentShader("transform.fs");
-    g_TransformShaders[0].Create();
+    g_Shaders[0].LoadVertexShader("transform.vs");
+    g_Shaders[0].LoadFragmentShader("transform.fs");
+    g_Shaders[0].Create();
 
-    g_TransformShaders[1].LoadVertexShader("transform.vs");
-    g_TransformShaders[1].LoadFragmentShader("Orange.fs");
-    g_TransformShaders[1].Create();
+    g_Shaders[1].LoadVertexShader("transform.vs");
+    g_Shaders[1].LoadFragmentShader("Orange.fs");
+    g_Shaders[1].Create();
 
-    g_TransformShaders[2].LoadVertexShader("transform.vs");
-    g_TransformShaders[2].LoadFragmentShader("Orange.fs");
-    g_TransformShaders[2].Create();
+    g_Shaders[2].LoadVertexShader("transform.vs");
+    g_Shaders[2].LoadFragmentShader("Orange.fs");
+    g_Shaders[2].Create();
     
     glGenBuffers(totalFigure, vbos);
     glGenBuffers(totalFigure, ibos);
     glGenVertexArrays(totalFigure, vaos);
 
-    constexpr size_t stride = sizeof(Vertex);
-
     uint32_t programs[totalFigure];
-    programs[0] = g_TransformShaders[0].GetProgram();
-    programs[1] = g_TransformShaders[1].GetProgram();
-    programs[2] = g_TransformShaders[2].GetProgram();
+    programs[0] = g_Shaders[0].GetProgram();
+    programs[1] = g_Shaders[1].GetProgram();
+    programs[2] = g_Shaders[2].GetProgram();
     
 
 
-    constexpr size_t strides = sizeof(DragonVertex);
+    constexpr size_t stride_dragon = sizeof(DragonVertex);
     glBindVertexArray(vaos[0]);
     glBindBuffer(GL_ARRAY_BUFFER, vbos[0]);
     glBufferData(GL_ARRAY_BUFFER
@@ -138,20 +123,22 @@ bool Initialise()
     int loc_position = glGetAttribLocation(programs[0], "a_position");
     glEnableVertexAttribArray(loc_position);
     glVertexAttribPointer(loc_position, 3, GL_FLOAT
-        , false, strides, (void*)offsetof(DragonVertex, position));
+        , false, stride_dragon, (void*)offsetof(DragonVertex, position));
 
     int loc_uv = glGetAttribLocation(programs[0], "a_texcoords");
     glEnableVertexAttribArray(loc_uv);
     glVertexAttribPointer(loc_uv, 2, GL_FLOAT
-        , false, strides, (void*)offsetof(DragonVertex, uv));
+        , false, stride_dragon, (void*)offsetof(DragonVertex, uv));
 
     
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    loadTexFromFile("dragon.png");
+    loadTexture("dragon.png");
     
 
     //2eme objet
+
+    constexpr size_t stride_fig = sizeof(Vertex);
     glBindVertexArray(vaos[1]);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbos[1]);
@@ -180,16 +167,11 @@ bool Initialise()
     loc_position = glGetAttribLocation(programs[1], "a_position");
     glEnableVertexAttribArray(loc_position);
     glVertexAttribPointer(loc_position, 3, GL_FLOAT
-        , false, sizeof(Vertex), (void*)offsetof(Vertex, position));
+        , false, stride_fig, (void*)offsetof(Vertex, position));
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-
-    
-
-
 
     return true;
 }
@@ -208,8 +190,8 @@ void Terminate()
         glDeleteBuffers(1, &ibos[i]);
     }
 
-    for (int i = 0; i < sizeof(g_TransformShaders) / sizeof(GLShader); i++) {
-        g_TransformShaders[i].Destroy();
+    for (int i = 0; i < sizeof(g_Shaders) / sizeof(GLShader); i++) {
+        g_Shaders[i].Destroy();
     }
 }
 
@@ -235,7 +217,7 @@ void Render(GLFWwindow* window)
         0.f, 0.f, ((2 * near * far) / (near - far)), 0.f
     };
 
-    const float translations[totalFigure][16] = {
+    const float models[totalFigure][16] = {
         {
             1.f, 0.f, 0.f, 0.f,
             0.f, 1.f, 0.f, 0.f,
@@ -257,9 +239,9 @@ void Render(GLFWwindow* window)
     };
 
     uint32_t programs[totalFigure];
-    programs[0] = g_TransformShaders[0].GetProgram();
-    programs[1] = g_TransformShaders[1].GetProgram();
-    programs[2] = g_TransformShaders[2].GetProgram();
+    programs[0] = g_Shaders[0].GetProgram();
+    programs[1] = g_Shaders[1].GetProgram();
+    programs[2] = g_Shaders[2].GetProgram();
 
     figSizes[0] = _countof(DragonVertices);
     figSizes[1] = indice.size();
@@ -281,8 +263,8 @@ void Render(GLFWwindow* window)
         GLint proj = glGetUniformLocation(programs[i], "u_projection");
         glUniformMatrix4fv(proj, 1, false, projection);
 
-        GLint trans = glGetUniformLocation(programs[i], "u_translation");
-        glUniformMatrix4fv(trans, 1, false, translations[i]);
+        GLint trans = glGetUniformLocation(programs[i], "u_model");
+        glUniformMatrix4fv(trans, 1, false, models[i]);
         glBindVertexArray(vaos[i]);
         glDrawElements(GL_TRIANGLES, figSizes[i], GL_UNSIGNED_INT, 0);
     }
